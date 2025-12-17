@@ -1179,9 +1179,9 @@ class Controller(BaseController):
     for param in params:
       if param.startswith('ip-to-country/') and param != 'ip-to-country/0.0.0.0' and self.is_geoip_unavailable():
         raise stem.ProtocolError('Tor geoip database is unavailable')
-      elif param == 'address' and self._last_address_exc:
+      elif param == 'address' and self._last_address_exc and default == UNDEFINED:
         raise self._last_address_exc  # we already know we can't resolve an address
-      elif param == 'fingerprint' and self._last_fingerprint_exc and self.get_conf('ORPort', None) is None:
+      elif param == 'fingerprint' and self._last_fingerprint_exc and self.get_conf('ORPort', None) is None and default == UNDEFINED:
         raise self._last_fingerprint_exc  # we already know we're not a relay
 
     # check for cached results
