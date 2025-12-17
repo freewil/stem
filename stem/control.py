@@ -1244,13 +1244,9 @@ class Controller(BaseController):
     except stem.ControllerError as exc:
       if 'address' in params:
         self._last_address_exc = exc
-        # Clear traceback to prevent memory leaks when re-raising cached exceptions
-        exc.__traceback__ = None
 
       if 'fingerprint' in params:
         self._last_fingerprint_exc = exc
-        # Clear traceback to prevent memory leaks when re-raising cached exceptions
-        exc.__traceback__ = None
 
       log.debug('GETINFO %s (failed: %s)' % (' '.join(params), exc))
       raise
