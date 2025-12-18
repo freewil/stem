@@ -1063,8 +1063,8 @@ class Controller(BaseController):
     self._enabled_features = []
     self._is_geoip_unavailable = None
 
-    self._last_address_exc = None
-    self._last_fingerprint_exc = None
+    self._last_address_error = None
+    self._last_fingerprint_error = None
 
     super(Controller, self).__init__(control_socket, is_authenticated)
 
@@ -1094,7 +1094,7 @@ class Controller(BaseController):
       if event.action in ('EXTERNAL_ADDRESS', 'DNS_USELESS'):
         self._set_cache({'exit_policy': None})
         self._set_cache({'address': None}, 'getinfo')
-        self._last_address_exc = None
+        self._last_address_error = None
 
     self.add_event_listener(_address_changed_listener, EventType.STATUS_SERVER)
 
@@ -1179,10 +1179,10 @@ class Controller(BaseController):
     for param in params:
       if param.startswith('ip-to-country/') and param != 'ip-to-country/0.0.0.0' and self.is_geoip_unavailable():
         raise stem.ProtocolError('Tor geoip database is unavailable')
-      elif param == 'address' and self._last_address_exc and default == UNDEFINED:
-        raise self._last_address_exc  # we already know we can't resolve an address
-      elif param == 'fingerprint' and self._last_fingerprint_exc and self.get_conf('ORPort', None) is None and default == UNDEFINED:
-        raise self._last_fingerprint_exc  # we already know we're not a relay
+      elif param == 'address' and self._last_address_error:
+        raise stem.ControllerError(self._last_address_error)  # we already know we can't resolve an address
+      elif param == 'fingerprint' and self._last_fingerprint_error and self.get_conf('ORPort', None) is None:
+        raise stem.ControllerError(self._last_fingerprint_error)  # we already know we're not a relay
 
     # check for cached results
 
@@ -1230,10 +1230,10 @@ class Controller(BaseController):
         self._set_cache(to_cache, 'getinfo')
 
       if 'address' in params:
-        self._last_address_exc = None
+        self._last_address_error = None
 
       if 'fingerprint' in params:
-        self._last_fingerprint_exc = None
+        self._last_fingerprint_error = None
 
       log.debug('GETINFO %s (runtime: %0.4f)' % (' '.join(params), time.time() - start_time))
 
@@ -1243,10 +1243,10 @@ class Controller(BaseController):
         return list(reply.values())[0]
     except stem.ControllerError as exc:
       if 'address' in params:
-        self._last_address_exc = exc
+        self._last_address_error = str(exc)
 
       if 'fingerprint' in params:
-        self._last_fingerprint_exc = exc
+        self._last_fingerprint_error = str(exc)
 
       log.debug('GETINFO %s (failed: %s)' % (' '.join(params), exc))
       raise
