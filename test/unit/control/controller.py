@@ -72,20 +72,20 @@ class TestControl(unittest.TestCase):
   def test_get_info_address_caching(self, msg_mock):
     msg_mock.return_value = ControlMessage.from_str('551 Address unknown\r\n')
 
-    self.assertEqual(None, self.controller._last_address_exc)
-    self.assertRaisesWith(stem.OperationFailed, 'Address unknown', self.controller.get_info, 'address')
-    self.assertEqual('Address unknown', str(self.controller._last_address_exc))
+    self.assertEqual(None, self.controller._last_address_error)
+    self.assertRaisesWith(stem.ControllerError, 'Address unknown', self.controller.get_info, 'address')
+    self.assertEqual('Address unknown', self.controller._last_address_error)
     self.assertEqual(1, msg_mock.call_count)
 
     # now that we have a cached failure we should provide that back
 
-    self.assertRaisesWith(stem.OperationFailed, 'Address unknown', self.controller.get_info, 'address')
+    self.assertRaisesWith(stem.ControllerError, 'Address unknown', self.controller.get_info, 'address')
     self.assertEqual(1, msg_mock.call_count)
 
     # invalidates the cache, transitioning from no address to having one
 
     msg_mock.return_value = ControlMessage.from_str('250-address=17.2.89.80\r\n250 OK\r\n', 'GETINFO')
-    self.assertRaisesWith(stem.OperationFailed, 'Address unknown', self.controller.get_info, 'address')
+    self.assertRaisesWith(stem.ControllerError, 'Address unknown', self.controller.get_info, 'address')
     self.controller._handle_event(ControlMessage.from_str('650 STATUS_SERVER NOTICE EXTERNAL_ADDRESS ADDRESS=17.2.89.80 METHOD=DIRSERV\r\n'))
     self.assertEqual('17.2.89.80', self.controller.get_info('address'))
 
@@ -102,20 +102,20 @@ class TestControl(unittest.TestCase):
     msg_mock.return_value = ControlMessage.from_str('551 Not running in server mode\r\n')
     get_conf_mock.return_value = None
 
-    self.assertEqual(None, self.controller._last_fingerprint_exc)
-    self.assertRaisesWith(stem.OperationFailed, 'Not running in server mode', self.controller.get_info, 'fingerprint')
-    self.assertEqual('Not running in server mode', str(self.controller._last_fingerprint_exc))
+    self.assertEqual(None, self.controller._last_fingerprint_error)
+    self.assertRaisesWith(stem.ControllerError, 'Not running in server mode', self.controller.get_info, 'fingerprint')
+    self.assertEqual('Not running in server mode', self.controller._last_fingerprint_error)
     self.assertEqual(1, msg_mock.call_count)
 
     # now that we have a cached failure we should provide that back
 
-    self.assertRaisesWith(stem.OperationFailed, 'Not running in server mode', self.controller.get_info, 'fingerprint')
+    self.assertRaisesWith(stem.ControllerError, 'Not running in server mode', self.controller.get_info, 'fingerprint')
     self.assertEqual(1, msg_mock.call_count)
 
     # ... but if we become a relay we'll call it again
 
     get_conf_mock.return_value = '443'
-    self.assertRaisesWith(stem.OperationFailed, 'Not running in server mode', self.controller.get_info, 'fingerprint')
+    self.assertRaisesWith(stem.ControllerError, 'Not running in server mode', self.controller.get_info, 'fingerprint')
     self.assertEqual(2, msg_mock.call_count)
 
   @patch('stem.control.Controller.get_info')
